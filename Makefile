@@ -1,13 +1,20 @@
 ROOT     := $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-NR_CORES := 20
+NR_CORES := 16
+XLEN     := 64
 
+TOOLCHAIN_PREFIX := $(ROOT)/buildroot/output/host/bin/riscv$(XLEN)-buildroot-linux-gnu-
+CC          := $(TOOLCHAIN_PREFIX)gcc
 # linux image
 buildroot_defconfig = configs/buildroot_defconfig
 linux_defconfig = configs/linux_defconfig
 busybox_defconfig = configs/busybox.config
 
-Image: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
+rootfs/benchmark: $(CC)
+	cd ./cachetest/ && $(CC) cachetest.c -o cachetest.elf
+	cp ./cachetest/cachetest.elf $@
+
+Image: $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig) $(benchmark)
 	make -C buildroot defconfig BR2_DEFCONFIG=../$(buildroot_defconfig)
 	make -C buildroot -j$(NR_CORES)
 	cp buildroot/output/images/Image Image
